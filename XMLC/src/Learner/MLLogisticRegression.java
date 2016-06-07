@@ -18,16 +18,21 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.commons.math3.analysis.function.Sigmoid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import Data.AVPair;
 import Data.AVTable;
 import Data.DenseVectorExt;
 import Data.SparseVectorExt;
 import Learner.step.StepFunction;
-import jsat.linear.DenseVector;
 import util.MasterSeed;
 
 public class MLLogisticRegression extends AbstractLearner {
+	private static final long serialVersionUID = 6048253331791813751L;
+
+	private static Logger logger = LoggerFactory.getLogger(MLLogisticRegression.class);
+
 	protected int epochs = 20;
 
 	protected DenseVectorExt[] w = null;
@@ -47,27 +52,30 @@ public class MLLogisticRegression extends AbstractLearner {
 	protected int updateMode = 0;
 
 	Random shuffleRand;
+	
+	transient Sigmoid s = new Sigmoid();
+
 
 	public MLLogisticRegression(Properties properties, StepFunction stepfunction) {
 		super(properties, stepfunction);
 		shuffleRand = MasterSeed.nextRandom();
 
-		System.out.println("#####################################################" );
-		System.out.println("#### Leraner: LogReg" );
+		logger.info("#####################################################" );
+		logger.info("#### Leraner: LogReg" );
 
 		// learning rate
 		this.gamma = Double.parseDouble(this.properties.getProperty("gamma", "10.0"));
-		System.out.println("#### gamma: " + this.gamma );
+		logger.info("#### gamma: " + this.gamma );
 
 		// step size for learning rate
 		this.step = Integer.parseInt(this.properties.getProperty("step", "2000") );
-		System.out.println("#### step: " + this.step );
+		logger.info("#### step: " + this.step );
 
 
 		this.epochs = Integer.parseInt(this.properties.getProperty("epochs", "30"));
-		System.out.println("#### epochs: " + this.epochs );
+		logger.info("#### epochs: " + this.epochs );
 
-		System.out.println("#####################################################" );
+		logger.info("#####################################################" );
 	}
 
 	@Override
@@ -76,10 +84,10 @@ public class MLLogisticRegression extends AbstractLearner {
 		this.m = data.m;
 		this.d = data.d;
 
-		System.out.println( "Num. of labels: " + this.m + " Dim: " + this.d );
+		logger.info( "Num. of labels: " + this.m + " Dim: " + this.d );
 		Random allocationRand = MasterSeed.nextRandom();
 
-		System.out.print( "Allocate the learners..." );
+		logger.info( "Allocate the learners..." );
 
 		this.w = new DenseVectorExt[this.m];
 		this.thresholds = new double[this.m];
@@ -93,7 +101,7 @@ public class MLLogisticRegression extends AbstractLearner {
 
 			this.thresholds[i] = 0.2;
 		}
-		System.out.println( "Done." );
+		logger.info( "Done." );
 	}
 
 	protected void updatedPosteriors( int currIdx, int label, double inc ) {
@@ -136,7 +144,7 @@ public class MLLogisticRegression extends AbstractLearner {
 
 		for (int ep = 0; ep < this.epochs; ep++) {
 
-			System.out.println("#############--> BEGIN of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
+			logger.info("#############--> BEGIN of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
 
 			ArrayList<Integer> indirectIdx = this.shuffleIndex();
 
@@ -163,18 +171,18 @@ public class MLLogisticRegression extends AbstractLearner {
 				this.T++;
 
 				if ((i % 10000) == 0) {
-					System.out.println( "\t --> Epoch: " + (ep+1) + " (" + this.epochs + ")" + "\tSample: "+ i +" (" + data.n + ")" );
+					logger.info( "\t --> Epoch: " + (ep+1) + " (" + this.epochs + ")" + "\tSample: "+ i +" (" + data.n + ")" );
 					DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 					Date date = new Date();
-					System.out.println("\t\t" + dateFormat.format(date));
-					System.out.println("\t\t" + this.stepfunctions[0].toString() );
-					//System.out.println("\t\tWeight: " + this.w[0].get(0) );
+					logger.info("\t\t" + dateFormat.format(date));
+					logger.info("\t\t" + this.stepfunctions[0].toString() );
+					//logger.info("\t\tWeight: " + this.w[0].get(0) );
 					
 				}
 
 			}
 
-			System.out.println("--> END of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
+			logger.info("--> END of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
 
 
 			//save model !!!!!!!!!!!!!!!!!!!!!!!
@@ -186,7 +194,6 @@ public class MLLogisticRegression extends AbstractLearner {
 
 
 
-	Sigmoid s = new Sigmoid();
 	@Override
 	public double getPosteriors(AVPair[] x, int label) {
 		double posterior = this.w[label].dot(x);
@@ -196,11 +203,10 @@ public class MLLogisticRegression extends AbstractLearner {
 		return posterior;
 	}
 
-	@Override
-	public void savemodel(String fname) {
+	public void save(String fname) {
 		// TODO Auto-generated method stub
 		try{
-			System.out.print( "Saving model (" + fname + ")..." );
+			logger.info( "Saving model (" + fname + ")..." );
 			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
 			          new FileOutputStream(fname)));
 
@@ -219,17 +225,16 @@ public class MLLogisticRegression extends AbstractLearner {
 			writer.write( "\n" );
 
 			writer.close();
-			System.out.println( "Done." );
+			logger.info( "Done." );
 		} catch (IOException e) {
-			System.out.println(e.getMessage());
+			logger.info(e.getMessage());
 		}
 
 	}
 
-	@Override
-	public void loadmodel(String fname) {
+	public void load(String fname) {
 		try {
-			System.out.println( "Loading model (" + fname + ")..." );
+			logger.info( "Loading model (" + fname + ")..." );
 			Path p = Paths.get(fname);
 
 			BufferedReader reader = Files.newBufferedReader(p, Charset.forName("UTF-8"));
@@ -273,7 +278,7 @@ public class MLLogisticRegression extends AbstractLearner {
 
 
 
-		    System.out.println( "Done." );
+		    logger.info( "Done." );
 		} catch (IOException x) {
 		    System.err.format("IOException: %s%n", x);
 		}

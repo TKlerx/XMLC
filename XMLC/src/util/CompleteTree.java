@@ -1,8 +1,15 @@
 package util;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class CompleteTree extends Tree {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class CompleteTree extends Tree implements Serializable {
+	private static final long serialVersionUID = 5656121729850759773L;
+	private static Logger logger = LoggerFactory.getLogger(CompleteTree.class);
+
 
 	//int[] childNodes = new int[this.k];
 	
@@ -79,7 +86,7 @@ public class CompleteTree extends Tree {
 		int k = 2, m = 933;
 		CompleteTree ct = new CompleteTree(k, m);
 		
-		System.out.println(ct.getSize());
+		logger.info(Integer.toString(ct.getSize()));
 		
 	}
 	

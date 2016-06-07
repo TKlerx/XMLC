@@ -6,25 +6,23 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import Data.AVTable;
 import IO.DataReader;
 import IO.Evaluator;
-import Learner.step.AdamStep;
-import Learner.step.GradStep;
-import Learner.step.GradStepL1;
-import Learner.step.StepFunction;
 import preprocessing.FeatureHasher;
-import preprocessing.MurmurHasher;
 import threshold.TTEum;
 import threshold.TTEumFast;
-import threshold.TTExu;
 import threshold.TTExuFast;
-import threshold.TTOfo;
 import threshold.TTOfoFast;
 import threshold.ThresholdTuning;
 import util.MasterSeed;
 
 public class LearnerManager {
+	private static Logger logger = LoggerFactory.getLogger(LearnerManager.class);
+	
 	protected Properties properties = null;
 	protected AVTable testdata =null;
 	protected AVTable traindata =null;
@@ -52,7 +50,7 @@ public class LearnerManager {
 
 
 	public Properties readProperty(String fname) {
-		System.out.print("Reading property file...");
+		logger.info("Reading property file...");
 		Properties properties = new Properties();
 		try {
 			FileInputStream in = new FileInputStream(fname);
@@ -65,7 +63,7 @@ public class LearnerManager {
 			System.err.println(e.getMessage());
 			System.exit(-1);
 		}
-		System.out.println("Done.");
+		logger.info("Done.");
 
 		return properties;
 	}
@@ -115,6 +113,7 @@ public class LearnerManager {
 		// train
 		String inputmodelFile = properties.getProperty("InputModelFile");
 		if (inputmodelFile == null ) {
+			this.readTrainData();
 			learner.allocateClassifiers(traindata);
 			learner.train(traindata);
 
@@ -123,7 +122,8 @@ public class LearnerManager {
 				learner.savemodel(modelFile);
 			}
 		} else {
-			learner.loadmodel(inputmodelFile);
+			logger.info("Loading model file...");
+			this.learner = AbstractLearner.loadmodel(inputmodelFile);
 		}
 
 	}
@@ -133,61 +133,67 @@ public class LearnerManager {
 	public void compositeEvaluation()
 	{
 
-		double [] thresholds = {/*0.0, 0.01, 0.05, */ 0.1, 0.25, 0.5};
-		Map<String,Double> [] perf = new Map[thresholds.length];
+//		double [] thresholds = {/*0.0, 0.01,*/ 0.05, 0.1, 0.25, 0.5};
+//		Map<String,Double> [] perf = new Map[thresholds.length];
+//		
+//		for(int t = 0; t < thresholds.length ; t++){
+//
+//			this.learner.setThresholds(thresholds[t]);
+//			perf[t] = Evaluator.computePerformanceMetrics(learner, testdata);
+//
+//		}
 		
-		for(int t = 0; t < thresholds.length ; t++){
+		Map<String,Double> perfvalidpreck = Evaluator.computePrecisionAtk(this.learner, this.validdata, 5);
+		Map<String,Double> perftestpreck = Evaluator.computePrecisionAtk(this.learner, this.testdata, 5);
+		
+		//Map<String,Double> perfpreck = Evaluator.computePrecisionAtk(learner, testdata, 5);
+		
+		for ( String perfName : perfvalidpreck.keySet() ) {
+			logger.info("##### Valid " + perfName + ": "  + perfvalidpreck.get(perfName) );			
+		}
 
-			this.learner.setThresholds(thresholds[t]);
-			perf[t] = Evaluator.computePerformanceMetrics(learner, testdata);
-
+		for ( String perfName : perftestpreck.keySet() ) {
+			logger.info("##### Test " + perfName + ": "  + perftestpreck.get(perfName));			
 		}
 		
 		
-		Map<String,Double> perfpreck = Evaluator.computePrecisionAtk(learner, testdata, 5);
-		
-		for ( String perfName : perfpreck.keySet() ) {
-			System.out.println("##### " + perfName + ": "  + perfpreck.get(perfName));
-		}
-		
-		
-		// evaluate (EUM)
-		//ThresholdTuning theum = new TTEumFast( learner.m, properties );
-		//learner.tuneThreshold(theum, validdata);
-		//Map<String,Double> perfTTEUMFast = Evaluator.computePerformanceMetrics(learner, testdata);
-							
-		// evaluate (OFO)
-		//ThresholdTuning th = new TTOfoFast( learner.m, properties );
-		//learner.tuneThreshold(th, validdata);			
-		//Map<String,Double> perfTTOFOFast = Evaluator.computePerformanceMetrics(learner, testdata);
-		
-		// evaluate (EXU)
-		//ThresholdTuning thexu = new TTExuFast( learner.m, properties );
-		//learner.tuneThreshold(thexu, validdata);
-		//Map<String,Double> perfTTExu = Evaluator.computePerformanceMetrics(learner, testdata);		
-		
-		
-		//for ( String perfName : perfTTEUMFast.keySet() ) {
-		//	System.out.println("##### EUM " + perfName + ": "  + perfTTEUMFast.get(perfName));
-		//}
-		
-		
-		//for ( String perfName : perfTTOFOFast.keySet() ) {
-		//	System.out.println("##### OFO " + perfName + ": "  + perfTTOFOFast.get(perfName));
-		//}
-
-
-		//for ( String perfName : perfTTExu.keySet() ) {
-		//	System.out.println("##### EXU " + perfName + ": "  + perfTTExu.get(perfName));
-		//}
+//		// evaluate (EUM)
+//		ThresholdTuning theum = new TTEumFast( learner.m, properties );
+//		learner.tuneThreshold(theum, validdata);
+//		Map<String,Double> perfTTEUMFast = Evaluator.computePerformanceMetrics(learner, testdata);
+//							
+//		// evaluate (OFO)
+//		ThresholdTuning th = new TTOfoFast( learner.m, properties );
+//		learner.tuneThreshold(th, validdata);			
+//		Map<String,Double> perfTTOFOFast = Evaluator.computePerformanceMetrics(learner, testdata);
+//		
+//		// evaluate (EXU)
+//		ThresholdTuning thexu = new TTExuFast( learner.m, properties );
+//		learner.tuneThreshold(thexu, validdata);
+//		Map<String,Double> perfTTExu = Evaluator.computePerformanceMetrics(learner, testdata);		
+//		
+//		
+//		for ( String perfName : perfTTEUMFast.keySet() ) {
+//			logger.info("##### EUM " + perfName + ": "  + perfTTEUMFast.get(perfName));
+//		}
+//		
+//		
+//		for ( String perfName : perfTTOFOFast.keySet() ) {
+//			logger.info("##### OFO " + perfName + ": "  + perfTTOFOFast.get(perfName));
+//		}
+//
+//
+//		for ( String perfName : perfTTExu.keySet() ) {
+//			logger.info("##### EXU " + perfName + ": "  + perfTTExu.get(perfName));
+//		}
 		
 		
-		for(int t = 0; t < thresholds.length; t++){
-			System.out.println("##########-----  Threshold: " + thresholds[t]);
-			for ( String perfName : perf[t].keySet() ) {
-				System.out.println("##### EUM" + perfName + ": "  + perf[t].get(perfName));
-			}
-		}
+//		for(int t = 0; t < thresholds.length; t++){
+//			System.out.println("##########-----  Threshold: " + thresholds[t]);
+//			for ( String perfName : perf[t].keySet() ) {
+//				System.out.println("##### EUM" + perfName + ": "  + perf[t].get(perfName));
+//			}
+//		}
 	
 		
 		
@@ -231,17 +237,17 @@ public class LearnerManager {
 
 
 	public static void main(String[] args) throws Exception {
-		System.out.println("Working Directory = " + System.getProperty("user.dir"));
+		logger.info("Working Directory = " + System.getProperty("user.dir"));
 
 
 		// read properties
 		if (args.length < 1) {
-			System.err.println("No config file given!");
+			logger.info("No config file given!");
 			System.exit(-1);
 		}
 
 		LearnerManager lm = new LearnerManager(args[0]);
-		lm.readTrainData();
+		//lm.readTrainData();
 	    lm.train();
 
 	    lm.readValidData();

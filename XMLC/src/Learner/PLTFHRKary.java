@@ -13,41 +13,35 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.PriorityQueue;
 import java.util.Properties;
-import java.util.Random;
-import java.util.TreeSet;
 
 import org.apache.commons.math3.analysis.function.Sigmoid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import Data.AVPair;
 import Data.AVTable;
-import Data.ComparablePair;
-import Data.EstimatePair;
-import Data.NodeComparatorPLT;
-import Data.NodePLT;
 import Learner.step.StepFunction;
-import jsat.linear.DenseVector;
-import preprocessing.MurmurHasher;
 import preprocessing.UniversalHasher;
-import threshold.ThresholdTuning;
-import util.MasterSeed;
 
 public class PLTFHRKary extends PLTFHKary {
+	private static final long serialVersionUID = -8118572654228214071L;
+
+
+	private static Logger logger = LoggerFactory.getLogger(PLTFHRKary.class);
+
 	
-	protected int[] Tarray = null;	
+	transient protected int[] Tarray = null;	
 	protected double[] scalararray = null;
 	
 	public PLTFHRKary(Properties properties, StepFunction stepfunction) {
 		super(properties, stepfunction);
 
-		System.out.println("#####################################################" );
-		System.out.println("#### Learner: PLTFTHRKary" );
-		System.out.println("#####################################################" );
+		logger.info("#####################################################" );
+		logger.info("#### Learner: PLTFTHRKary" );
+		logger.info("#####################################################" );
 	}
 
 	@Override
@@ -59,7 +53,7 @@ public class PLTFHRKary extends PLTFHKary {
 		Arrays.fill(this.Tarray, 1);
 		Arrays.fill(this.scalararray, 1.0);
 		
-		//System.out.println( "Done." );
+		//logger.info( "Done." );
 	}
 	
 		
@@ -70,7 +64,7 @@ public class PLTFHRKary extends PLTFHKary {
 				
 		for (int ep = 0; ep < this.epochs; ep++) {
 
-			System.out.println("#############--> BEGIN of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
+			logger.info("#############--> BEGIN of Epoch: {} ({})", (ep + 1), this.epochs );
 			// random permutation
 			ArrayList<Integer> indirectIdx = this.shuffleIndex();
 			
@@ -118,7 +112,7 @@ public class PLTFHRKary extends PLTFHKary {
 					}
 				}
 
-				//System.out.println("Negative tree indices: " + negativeTreeIndices.toString());
+				//logger.info("Negative tree indices: " + negativeTreeIndices.toString());
 
 				for(int j:positiveTreeIndices) {
 
@@ -130,7 +124,7 @@ public class PLTFHRKary extends PLTFHKary {
 
 				for(int j:negativeTreeIndices) {
 
-					if(j >= this.t) System.out.println("ALARM");
+					if(j >= this.t) logger.info("ALARM");
 
 					double posterior = getPartialPosteriors(traindata.x[currIdx],j);
 					double inc = -(0.0 - posterior); 
@@ -141,16 +135,16 @@ public class PLTFHRKary extends PLTFHKary {
 				this.T++;
 
 				if ((i % 100000) == 0) {
-					System.out.println( "\t --> Epoch: " + (ep+1) + " (" + this.epochs + ")" + "\tSample: "+ i +" (" + data.n + ")" );
+					logger.info( "\t --> Epoch: " + (ep+1) + " (" + this.epochs + ")" + "\tSample: "+ i +" (" + data.n + ")" );
 					DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 					Date date = new Date();
-					System.out.println("\t\t" + dateFormat.format(date));
-					//System.out.println("Weight: " + this.w[0].get(0) );
-					System.out.println("Scalar: " + this.scalar);
+					logger.info("\t\t" + dateFormat.format(date));
+					//logger.info("Weight: " + this.w[0].get(0) );
+					logger.info("Scalar: " + this.scalar);
 				}
 			}
 
-			System.out.println("--> END of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
+			logger.info("--> END of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
 		}
 		
 		int zeroW = 0;
@@ -163,7 +157,7 @@ public class PLTFHRKary extends PLTFHKary {
 			sumW += weight;
 			index++;
 		}
-		System.out.println("Hash weights (lenght, zeros, nonzeros, ratio, sumW, last nonzero): " + w.length + ", " + zeroW + ", " + (w.length - zeroW) + ", " + (double) (w.length - zeroW)/(double) w.length + ", " + sumW + ", " + maxNonZero);
+		logger.info("Hash weights (lenght, zeros, nonzeros, ratio, sumW, last nonzero): " + w.length + ", " + zeroW + ", " + (w.length - zeroW) + ", " + (double) (w.length - zeroW)/(double) w.length + ", " + sumW + ", " + maxNonZero);
 	}
 
 
@@ -189,13 +183,18 @@ public class PLTFHRKary extends PLTFHKary {
 		double gradient = this.scalararray[label] * inc;
 		double update = (this.learningRate * gradient);//  / this.scalar;		
 		this.bias[label] -= update;
-		//System.out.println("bias -> gradient, scalar, update: " + gradient + ", " + scalar +", " + update);
+		//logger.info("bias -> gradient, scalar, update: " + gradient + ", " + scalar +", " + update);
+	}
+	protected Object readResolve(){
+		return super.readResolve();
 	}
 
 
-	Sigmoid s = new Sigmoid();
 	@Override
 	public double getPartialPosteriors(AVPair[] x, int label) {
+		if(s==null){
+			s = new Sigmoid();
+		}
 		double posterior = 0.0;
 		
 		
@@ -213,11 +212,9 @@ public class PLTFHRKary extends PLTFHKary {
 	}
 	
 	
-	@Override
-	public void savemodel(String fname) {
-		// TODO Auto-generated method stub
+	public void save(String fname) {
 		try{
-			System.out.print( "Saving model (" + fname + ")..." );						
+			logger.info( "Saving model (" + fname + ")..." );						
 			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
 			          new FileOutputStream(fname)));
 
@@ -257,17 +254,16 @@ public class PLTFHRKary extends PLTFHKary {
 			
 			writer.close();
 			
-			System.out.println( "Done." );
+			logger.info( "Done." );
 		} catch (IOException e) {
-			System.out.println(e.getMessage());
+			logger.info(e.getMessage());
 		}
 
 	}
 
-	@Override
-	public void loadmodel(String fname) {
+	public void load(String fname) {
 		try {
-			System.out.println( "Loading model (" + fname + ")..." );
+			logger.info( "Loading model (" + fname + ")..." );
 			Path p = Paths.get(fname);
 
 			BufferedReader reader = Files.newBufferedReader(p, Charset.forName("UTF-8"));
@@ -345,7 +341,7 @@ public class PLTFHRKary extends PLTFHKary {
 
 
 	    	this.scalar=1.0;
-		    System.out.println( "Done." );
+		    logger.info( "Done." );
 		} catch (IOException x) {
 		    System.err.format("IOException: %s%n", x);
 		}

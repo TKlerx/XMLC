@@ -13,7 +13,11 @@
 
 package Learner.step;
 
+import java.io.Serializable;
 import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import jsat.linear.IndexValue;
 import jsat.linear.SparseVector;
@@ -21,7 +25,11 @@ import jsat.linear.Vec;
 import jsat.math.decayrates.DecayRate;
 import jsat.math.decayrates.PowerDecay;
 
-public class GradStepL1 implements StepFunction {
+public class GradStepL1 implements StepFunction, Serializable {
+	private static final long serialVersionUID = -8754614352551821958L;
+
+	private static Logger logger = LoggerFactory.getLogger(GradStepL1.class);
+
 	//private LossFunc loss = new LogisticLoss();;
     //private GradientUpdater gradientUpdater;
     private double eta;
@@ -37,21 +45,21 @@ public class GradStepL1 implements StepFunction {
     
     
 	public GradStepL1(Properties properties) {
-		System.out.println("#####################################################");
-		System.out.println("#### Optimizer: Simple gradient descent with L1 penalization");
+		logger.info("#####################################################");
+		logger.info("#### Optimizer: Simple gradient descent with L1 penalization");
 		
 		this.eta = Double.parseDouble(properties.getProperty("eta", "0.001"));
-		System.out.println("#### gamma: " + this.eta);
+		logger.info("#### gamma: " + this.eta);
 
 		this.lambda0 = Double.parseDouble(properties.getProperty("lambda0", "0.001"));
-		System.out.println("#### lambda0: " + this.lambda0 );
+		logger.info("#### lambda0: " + this.lambda0 );
 		
 		this.lambda1 = Double.parseDouble(properties.getProperty("lambda1", "0.001"));
-		System.out.println("#### lambda1: " + this.lambda1 );
+		logger.info("#### lambda1: " + this.lambda1 );
 		
 		
 		
-		System.out.println("#####################################################");
+		logger.info("#####################################################");
 	}
 
 	private void allocate(int length) {

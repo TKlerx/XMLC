@@ -9,6 +9,8 @@ public abstract class ThresholdTuning {
 	protected double[] thresholds = null;
 	protected int m = 0;
 	protected Properties properties = null;
+	protected int numberOfPredictedPositives = 0;
+	protected double validatedFmeasure = 0.0;
 	
 	public ThresholdTuning( int m, Properties properties ) {
 		this.properties = properties;
@@ -22,6 +24,14 @@ public abstract class ThresholdTuning {
 	}
 	
 	abstract public double[] validate( AVTable data, AbstractLearner learner ); 
-	
+	abstract public double[] validate( AVTable data, AVTable sPEarray );
+
+	public int getNumberOfPredictedPositives() {
+		return numberOfPredictedPositives;
+	}
+
+	public double getValidatedFmeasure() {
+		return validatedFmeasure;
+	}
 	
 }

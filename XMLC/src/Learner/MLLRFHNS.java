@@ -14,27 +14,30 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Properties;
 import java.util.Random;
 
 import org.apache.commons.math3.analysis.function.Sigmoid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import Data.AVPair;
 import Data.AVTable;
-import Data.SparseVectorExt;
 import Learner.step.StepFunction;
-import jsat.linear.DenseVector;
-import jsat.linear.IndexValue;
 import preprocessing.FeatureHasher;
 import preprocessing.MurmurHasher;
 import preprocessing.UniversalHasher;
-import util.HashFunction;
 import util.MasterSeed;
 
 public class MLLRFHNS extends AbstractLearner {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 5052825572366584869L;
+
+	private static Logger logger = LoggerFactory.getLogger(MLLRFHNS.class);
+
 	protected int epochs = 1;
 	protected int fhseed = 1;
 	protected double[] w = null;
@@ -47,6 +50,8 @@ public class MLLRFHNS extends AbstractLearner {
 	protected AVTable traindata = null;
 
 	Random shuffleRand;
+	transient Sigmoid s = new Sigmoid();
+
 	
 	protected FeatureHasher fh = null;
 	
@@ -74,30 +79,30 @@ public class MLLRFHNS extends AbstractLearner {
 		shuffleRand = MasterSeed.nextRandom();
 		this.scalar = 1.0;
 		
-		System.out.println("#####################################################" );
-		System.out.println("#### Learner: MLLRFH" );
+		logger.info("#####################################################" );
+		logger.info("#### Learner: MLLRFH" );
 
 		// learning rate
 		this.gamma = Double.parseDouble(this.properties.getProperty("gamma", "1.0"));
-		System.out.println("#### gamma: " + this.gamma );
+		logger.info("#### gamma: " + this.gamma );
 
 		// scalar
 		this.lambda = Double.parseDouble(this.properties.getProperty("lambda", "1.0"));
-		System.out.println("#### lambda: " + this.lambda );
+		logger.info("#### lambda: " + this.lambda );
 
 		// epochs
 		this.epochs = Integer.parseInt(this.properties.getProperty("epochs", "30"));
-		System.out.println("#### epochs: " + this.epochs );
+		logger.info("#### epochs: " + this.epochs );
 
 		// epochs
 		this.hasher = this.properties.getProperty("hasher", "Universal");
-		System.out.println("#### Hasher: " + this.hasher );
+		logger.info("#### Hasher: " + this.hasher );
 		
 		
 		this.hd = Integer.parseInt(this.properties.getProperty("MLFeatureHashing", "50000000")); 
-		System.out.println("#### Num of ML hashed features: " + this.hd );
+		logger.info("#### Num of ML hashed features: " + this.hd );
 		
-		System.out.println("#####################################################" );
+		logger.info("#####################################################" );
 	}
 
 	@Override
@@ -112,12 +117,12 @@ public class MLLRFHNS extends AbstractLearner {
 		} else if ( this.hasher.compareTo("Murmur") == 0 ) {
 			this.fh = new MurmurHasher(fhseed, this.hd, this.m);
 		} else {
-			System.out.println("Unknown hasher");
+			logger.info("Unknown hasher");
 			System.exit(-1);
 		}
 		
-		System.out.println( "Num. of labels: " + this.m + " Dim: " + this.d + " Hash dim: " + this.hd );
-		System.out.print( "Allocate the learners..." );
+		logger.info( "Num. of labels: " + this.m + " Dim: " + this.d + " Hash dim: " + this.hd );
+		logger.info( "Allocate the learners..." );
 
 		this.w = new double[this.hd];
 		this.thresholds = new double[this.m];
@@ -137,7 +142,7 @@ public class MLLRFHNS extends AbstractLearner {
 		this.contextChange = new double[this.m];
 		
 		
-		System.out.println( "Done." );
+		logger.info( "Done." );
 	}
 	
 	
@@ -190,7 +195,7 @@ public class MLLRFHNS extends AbstractLearner {
 		
 		for (int ep = 0; ep < this.epochs; ep++) {
 
-			System.out.println("#############--> BEGIN of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
+			logger.info("#############--> BEGIN of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
 
 			ArrayList<Integer> indirectIdx = this.shuffleIndex();
 
@@ -225,9 +230,9 @@ public class MLLRFHNS extends AbstractLearner {
 					}
 				}
 				
-				//System.out.println("Positive labels: " + positiveLabels.toString());
+				//logger.info("Positive labels: " + positiveLabels.toString());
 				
-				//System.out.println("Negative labels: " + negativeLabels.toString());
+				//logger.info("Negative labels: " + negativeLabels.toString());
 				
 				for(int j:positiveLabels) {
 
@@ -247,17 +252,17 @@ public class MLLRFHNS extends AbstractLearner {
 				this.T++;
 
 				if ((i % 100000) == 0) {
-					System.out.println( "\t --> Epoch: " + (ep+1) + " (" + this.epochs + ")" + "\tSample: "+ i +" (" + data.n + ")" );
+					logger.info( "\t --> Epoch: " + (ep+1) + " (" + this.epochs + ")" + "\tSample: "+ i +" (" + data.n + ")" );
 					DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 					Date date = new Date();
-					System.out.println("\t\t" + dateFormat.format(date));
-					//System.out.println("Weight: " + this.w[0].get(0) );
-					System.out.println("Scalar: " + this.scalar);
+					logger.info("\t\t" + dateFormat.format(date));
+					//logger.info("Weight: " + this.w[0].get(0) );
+					logger.info("Scalar: " + this.scalar);
 				}
 
 			}
 
-			System.out.println("--> END of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
+			logger.info("--> END of Epoch: " + (ep + 1) + " (" + this.epochs + ")" );
 		}
 		
 		int zeroW = 0;
@@ -270,11 +275,11 @@ public class MLLRFHNS extends AbstractLearner {
 			sumW += weight;
 			index++;
 		}
-		System.out.println("Hash weights (lenght, zeros, nonzeros, ratio, sumW, last nonzero): " + w.length + ", " + zeroW + ", " + (w.length - zeroW) + ", " + (double) (w.length - zeroW)/(double) w.length + ", " + sumW + ", " + maxNonZero);
+		logger.info("Hash weights (lenght, zeros, nonzeros, ratio, sumW, last nonzero): " + w.length + ", " + zeroW + ", " + (w.length - zeroW) + ", " + (double) (w.length - zeroW)/(double) w.length + ", " + sumW + ", " + maxNonZero);
 
 		for(int i = 0; i < this.m; i++) {
 			this.contextChange[i] = this.computeContextChange(this.numOfPositiveUpdates[i], this.numOfUpdates[i], (this.traindata.n * this.epochs));
-//			System.out.println(i + ": " + numOfUpdates[i] + " " + (this.epochs * this.traindata.n) + " " + (((double) this.numOfUpdates[i]/(double) (this.epochs * this.traindata.n))));
+//			logger.info(i + ": " + numOfUpdates[i] + " " + (this.epochs * this.traindata.n) + " " + (((double) this.numOfUpdates[i]/(double) (this.epochs * this.traindata.n))));
 		}
 
 	
@@ -289,7 +294,6 @@ public class MLLRFHNS extends AbstractLearner {
 	}
 	
 	
-	Sigmoid s = new Sigmoid();
 	@Override
 	public double getPosteriors(AVPair[] x, int label) {
 		double posterior = 0.0;
@@ -304,7 +308,7 @@ public class MLLRFHNS extends AbstractLearner {
 		
 		posterior += (1/this.scalar) * this.bias[label]; 
 		
-		//System.out.println("Posterior:" + s.value(posterior));// + " Calibration: " + ((double) this.numOfUpdates[label]/(double) (this.epochs * this.traindata.n)));
+		//logger.info("Posterior:" + s.value(posterior));// + " Calibration: " + ((double) this.numOfUpdates[label]/(double) (this.epochs * this.traindata.n)));
 		
 		posterior = s.value(posterior);
 		
@@ -315,7 +319,7 @@ public class MLLRFHNS extends AbstractLearner {
 		
 		posterior = (contextChange[label] * posterior) / (contextChange[label] * posterior + (1 - contextChange[label]) * (1 - posterior));
 		
-		//System.out.println("Posterior:" + posterior);// + " Calibration: " + ((double) this.numOfUpdates[label]/(double) (this.epochs * this.traindata.n)));
+		//logger.info("Posterior:" + posterior);// + " Calibration: " + ((double) this.numOfUpdates[label]/(double) (this.epochs * this.traindata.n)));
 		
 		return posterior;
 
@@ -341,11 +345,10 @@ public class MLLRFHNS extends AbstractLearner {
 
 	
 	
-	@Override
-	public void savemodel(String fname) {
+	public void save(String fname) {
 		// TODO Auto-generated method stub
 		try{
-			System.out.print( "Saving model (" + fname + ")..." );						
+			logger.info( "Saving model (" + fname + ")..." );						
 			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
 			          new FileOutputStream(fname)));
 
@@ -376,17 +379,16 @@ public class MLLRFHNS extends AbstractLearner {
 
 			writer.close();
 			
-			System.out.println( "Done." );
+			logger.info( "Done." );
 		} catch (IOException e) {
-			System.out.println(e.getMessage());
+			logger.info(e.getMessage());
 		}
 
 	}
 
-	@Override
-	public void loadmodel(String fname) {
+	public void load(String fname) {
 		try {
-			System.out.println( "Loading model (" + fname + ")..." );
+			logger.info( "Loading model (" + fname + ")..." );
 			Path p = Paths.get(fname);
 
 			BufferedReader reader = Files.newBufferedReader(p, Charset.forName("UTF-8"));
@@ -453,7 +455,7 @@ public class MLLRFHNS extends AbstractLearner {
 	    	this.fh = new UniversalHasher(fhseed, this.hd, this.m);
 
 	    	this.scalar=1.0;
-		    System.out.println( "Done." );
+		    logger.info( "Done." );
 		} catch (IOException x) {
 		    System.err.format("IOException: %s%n", x);
 		}

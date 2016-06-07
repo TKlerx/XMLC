@@ -1,11 +1,18 @@
 package threshold;
 
+import java.util.HashSet;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import Data.AVTable;
+import Data.EstimatePair;
 import Learner.AbstractLearner;
 
 public class TTOfo extends ThresholdTuning {
+	private static Logger logger = LoggerFactory.getLogger(TTOfo.class);
+
 	protected int OFOepochs = 1;
 	protected int initValueDenum = 1;
 	
@@ -65,9 +72,15 @@ public class TTOfo extends ThresholdTuning {
 		}
 		
 		for( int i=0; i < this.m; i++ )
-			System.out.println( "Class: " + i + " Th: " + String.format("%.4f", this.thresholds[i])  );
+			logger.info( "Class: " + i + " Th: " + String.format("%.4f", this.thresholds[i])  );
 	
 		return this.thresholds;
+	}
+
+	@Override
+	public double[] validate( AVTable data, AVTable sPEarray ) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }
